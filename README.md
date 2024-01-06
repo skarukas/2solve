@@ -10,6 +10,8 @@ And follow the interactive prompts.
 
 This solver produces the best results first, and can produce a 2-solve almost immediately. 
 
+![2solve-screenshot](2solve-screenshot.png)
+
 The "best" result:
 - Is a series of words that uses all the letters in the box (aka, a solution).
 - Uses the minimal number of words to solve the puzzle
