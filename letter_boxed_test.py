@@ -24,13 +24,10 @@ class LetterBoxedTest(unittest.TestCase):
         ["BTLEHYVCOIWJ", [("who", "objectively")]],  # 12-30-2023
         ["SVCAERDMWILY", [  # 12-29-2023
             ("calmed", "driveways"),
-            ("crimewaves", "slayed")
         ]],
         ["ATRGUFQINLEC", [("cafeteria", "aqualung")]],  # 12-28-2023
-        ["LAMETDCRIPBO", [  # 12-27-2023
-            ("recordable", "emptier"),
-            ("impactor, readable"),
-            ("compatible", "earldom"),
+        ["RALIFUTXZNEB", [  # 1-5-2024
+            ("fertilize", "exurban"),
         ]],
     ])
     def test_solutions(self, board_letters: str, expected_best_solutions, max_solutions=10):

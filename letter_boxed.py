@@ -130,14 +130,13 @@ class LetterBoxedGame:
         self.min_word_length = min_word_length
         old_len = len(dictionary)
         self.dictionary = dictionary
-        self.dictionary = self.dictionary.filter(self.can_be_played_in_game)
+        self.dictionary = self.dictionary.filter(self.try_playing_on_board)
         print(
             f"Scaled dictionary from {old_len} to {len(self.dictionary)} entries.")
 
-    def get_child_states(self, state: LetterBoxedState) -> list[LetterBoxedState]:
+    def get_child_letter_states(self, state: LetterBoxedState) -> list[LetterBoxedState]:
         next_states = []
-        board = self.board
-        for edge_index, edge_letters in enumerate(board.edge_letters):
+        for edge_index, edge_letters in enumerate(self.board.edge_letters):
             if state.is_valid_next_edge_index(edge_index):
                 next_states.extend([
                     state.place_letter(letter, edge_index)
@@ -149,9 +148,25 @@ class LetterBoxedGame:
         random.shuffle(next_states)
         return next_states
 
-    def can_be_played_in_game(self, s: str) -> bool:
+    def get_child_word_states(self, state: LetterBoxedState) -> list[LetterBoxedState]:
+        next_states = []
+        for word in self.dictionary._word_set:
+            if state.word_in_progress in ("", word[0]):
+                next_state = self.try_playing_on_board(word, state)
+                if next_state is not None:
+                    next_states.append(next_state)
+        random.shuffle(next_states)
+        return next_states
+
+    def try_playing_on_board(self, s: str, start_state: LetterBoxedState | None = None) -> LetterBoxedState | None:
         """Linear version that assumes each letter appears only once."""
-        state = LetterBoxedState(self.dictionary.prefix_tree, game=self)
+        if start_state is None:
+            state = LetterBoxedState(self.dictionary.prefix_tree, game=self)
+        else:
+            state = start_state
+        if state.words:
+            s = s[1:]
+
         for l in s:
             valid_edge_idx = [
                 edge_index
@@ -161,8 +176,8 @@ class LetterBoxedGame:
             if valid_edge_idx and state.can_place_letter(l, valid_edge_idx[0]):
                 state = state.place_letter(l, valid_edge_idx[0])
             else:
-                return False
-        return state.can_finish_word()
+                return None
+        return state.finish_last_word() if state.can_finish_word() else None
 
     def can_be_played_in_game_dfs(self, s: str) -> bool:
         """Checks if a path through the board exists for the word.
@@ -201,22 +216,24 @@ class LetterBoxedGame:
         return len(s) >= self.min_word_length \
             and set(s).issubset(set(self.board.all_letters()))
 
-    def solve(self) -> Iterator[LetterBoxedState]:
+    def solve(self, strategy='word') -> Iterator[LetterBoxedState]:
+        get_child_states = self.get_child_letter_states if strategy == 'letter' else self.get_child_word_states
         queue = PriorityQueue()
         initial_state = LetterBoxedState(
             self.dictionary.prefix_tree, game=self)
         queue.put(initial_state)
         seen = set([initial_state])
 
-        while queue.not_empty:
+        while not queue.empty():
             state: LetterBoxedState = queue.get()
             if state.is_final_state():
                 yield state
 
-            for next_state in self.get_child_states(state):
+            for next_state in get_child_states(state):
                 if next_state not in seen:
                     queue.put(next_state)
-                    seen.add(next_state)
+                    if strategy == 'letter':
+                      seen.add(next_state)
 
         # return+yield returns an empty generator instead of None.
         return
@@ -225,7 +242,8 @@ class LetterBoxedGame:
 
 if __name__ == "__main__":
     dictionary = Dictionary.open("word_list.txt")
-    letters = input("List all the letters, counterclockwise from the top left corner (for example, BTLEHYVCOIWJ): ").strip()
+    letters = input(
+        "List all the letters, counterclockwise from the top left corner (for example, BTLEHYVCOIWJ): ").strip() or "BTLEHYVCOIWJ"
     board = LetterBoxedBoard(letters)
     game = LetterBoxedGame(dictionary, board)
     print("I'm thinking...")
